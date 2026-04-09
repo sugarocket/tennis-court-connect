@@ -555,8 +555,8 @@ export default function CourtDiscoveryScreen() {
                   <Text style={{ fontSize: 22, color: '#007AFF', marginRight: 4 }}>‹</Text>
                   <Text style={{ fontSize: 17, color: '#007AFF' }}>Back</Text>
                 </TouchableOpacity>
-                <Text style={{ fontSize: 24, fontWeight: '700', color: '#000' }}>{c.name}</Text>
-                <Text style={{ fontSize: 15, color: '#8E8E93', marginTop: 4 }}>{c.address}</Text>
+                <Text style={{ fontSize: 24, fontWeight: '700', color: '#000' }}>{c.name || 'Court'}</Text>
+                <Text style={{ fontSize: 15, color: '#8E8E93', marginTop: 4 }}>{c.address || 'Address unavailable'}</Text>
               </View>
 
               <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
