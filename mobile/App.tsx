@@ -548,12 +548,14 @@ export default function CourtDiscoveryScreen() {
           const c: Court = selectedCourt;
           return (
             <View style={{ flex: 1, backgroundColor: '#F2F2F7' }}>
-              <View style={styles.header}>
-                <TouchableOpacity onPress={() => setSelectedCourt(null)} style={{ marginBottom: 8 }}>
-                  <Text style={{ fontSize: 16, color: '#007AFF' }}>← Back</Text>
+              {/* iOS-style detail header */}
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E5EA' }}>
+                <TouchableOpacity onPress={() => { setSelectedCourt(null); setTab('discover'); }} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 22, color: '#007AFF', marginRight: 4 }}>‹</Text>
+                  <Text style={{ fontSize: 17, color: '#007AFF' }}>Back</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>{c.name}</Text>
-                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 4 }}>{c.address}</Text>
+                <Text style={{ fontSize: 24, fontWeight: '700', color: '#000' }}>{c.name}</Text>
+                <Text style={{ fontSize: 15, color: '#8E8E93', marginTop: 4 }}>{c.address}</Text>
               </View>
 
               <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
