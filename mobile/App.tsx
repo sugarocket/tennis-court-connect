@@ -9,6 +9,8 @@ import {
   ScrollView,
   Animated,
   TextInput,
+  Linking,
+  RefreshControl,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -30,6 +32,9 @@ type Court = {
   type?: string;
   lights?: string;
   courts?: number;
+  winterPlay?: string;
+  phone?: string;
+  website?: string;
   availability: string[];
 };
 
@@ -46,6 +51,7 @@ export default function CourtDiscoveryScreen() {
   const [lightsOnly, setLightsOnly] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [sortMode, setSortMode] = useState<'name' | 'distance'>('name');
+  const [refreshing, setRefreshing] = useState(false);
 
   const toggleExpand = (id: string) => {
     const isExpanding = expandedId !== id;
@@ -103,7 +109,10 @@ export default function CourtDiscoveryScreen() {
             type: r.Type,
             lights: r.Lights,
             courts: r.Courts,
-            availability: ['Contact club for times'], // placeholder — real API has no schedule
+            winterPlay: r.WinterPlay,
+            phone: r.Phone,
+            website: r.ClubWebsite,
+            availability: ['Contact club for times'],
           };
         });
 
@@ -117,6 +126,42 @@ export default function CourtDiscoveryScreen() {
     }
     init();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch(CKAN_URL);
+      const json = await res.json();
+      const records = json.result?.records || [];
+      const mapped: Court[] = records.map((r: any, i: number) => {
+        let lat = TORONTO_LAT;
+        let lng = TORONTO_LNG;
+        if (r.geometry?.coordinates) {
+          lng = r.geometry.coordinates[0];
+          lat = r.geometry.coordinates[1];
+        } else if (r.x && r.y) {
+          lng = r.x;
+          lat = r.y;
+        }
+        return {
+          id: r._id ? String(r._id) : String(i),
+          name: r.Name || 'Unknown Court',
+          address: r.LocationAddress || r.ClubInfo || 'Address unavailable',
+          lat,
+          lng,
+          type: r.Type,
+          lights: r.Lights,
+          courts: r.Courts,
+          winterPlay: r.WinterPlay,
+          phone: r.Phone,
+          website: r.ClubWebsite,
+          availability: ['Contact club for times'],
+        };
+      });
+      setCourts(mapped);
+    } catch {}
+    setRefreshing(false);
+  };
 
   // Apply Phase 2 filters and sort
   const filteredCourts = courts
@@ -150,6 +195,13 @@ export default function CourtDiscoveryScreen() {
       >
         <View style={styles.cardHeader}>
           <Text style={styles.courtName}>{court.name}</Text>
+          {userLocation && (
+            <View style={[styles.statusBadge, { backgroundColor: '#34C75922' }]}>
+              <Text style={[styles.statusText, { color: '#34C759' }]}>
+                {Math.round(Math.hypot(court.lat - userLocation.lat, court.lng - userLocation.lng) * 111)}km
+              </Text>
+            </View>
+          )}
           {court.type && (
             <View style={[styles.statusBadge, { backgroundColor: '#007AFF22' }]}>
               <Text style={[styles.statusText, { color: '#007AFF' }]}>
@@ -175,6 +227,39 @@ export default function CourtDiscoveryScreen() {
         >
           <Text style={styles.detailLabel}>Address</Text>
           <Text style={styles.detailValue}>{court.address}</Text>
+
+          {court.courts && (
+            <Text style={styles.detailValue}>🎾 {court.courts} court{court.courts > 1 ? 's' : ''}</Text>
+          )}
+          {court.lights && (
+            <Text style={styles.detailValue}>{court.lights === 'Y' ? '🟢 Lit' : '⚪ Unlit'}</Text>
+          )}
+          {court.winterPlay === 'Y' && (
+            <Text style={styles.detailValue}>❄️ Winter play available</Text>
+          )}
+          {court.phone && (
+            <TouchableOpacity onPress={() => Linking.openURL(`tel:${court.phone}`)}>
+              <Text style={[styles.detailValue, styles.linkText]}>☎️ {court.phone}</Text>
+            </TouchableOpacity>
+          )}
+          {court.website && (
+            <TouchableOpacity onPress={() => Linking.openURL(court.website!)}>
+              <Text style={[styles.detailValue, styles.linkText]}>🔗 Club website</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.mapLinkButton}
+            activeOpacity={0.7}
+            onPress={() => {
+              const url = `maps://maps.apple.com/?ll=${court.lat},${court.lng}`;
+              Linking.openURL(url).catch(() =>
+                Linking.openURL(`https://maps.google.com/?q=${court.lat},${court.lng}`)
+              );
+            }}
+          >
+            <Text style={styles.mapLinkButtonText}>Open in Maps</Text>
+          </TouchableOpacity>
 
           <Text style={styles.detailLabel}>Available Times</Text>
           <View style={styles.timeRow}>
@@ -279,9 +364,18 @@ export default function CourtDiscoveryScreen() {
       {/* Content */}
       {!loading && !error && (
         viewMode === 'list' ? (
-          <ScrollView contentContainerStyle={styles.listContainer}>
-            {filteredCourts.map(renderCard)}
-          </ScrollView>
+          filteredCourts.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.infoText}>No courts match your filters.</Text>
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={styles.listContainer}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+              {filteredCourts.map(renderCard)}
+            </ScrollView>
+          )
         ) : (
           <MapView
             style={styles.map}
@@ -506,5 +600,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  linkText: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  },
+  mapLinkButton: {
+    marginTop: 12,
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  mapLinkButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
