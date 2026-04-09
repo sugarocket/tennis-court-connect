@@ -65,10 +65,14 @@ export default function CourtDiscoveryScreen() {
   // Main tab: Discover | My
   // Bottom tab: discover | bookings | favorites | account
   const [tab, setTab] = useState<'discover' | 'bookings' | 'favorites' | 'account'>('discover');
-  // Favorites: array of court IDs
-  const [favorites, setFavorites] = useState<string[]>([]);
+  // Favorites: array of court IDs (mock demo)
+  const [favorites, setFavorites] = useState<string[]>(['1']);
   // Bookings: {courtId, day, time}
-  const [bookings, setBookings] = useState<{ courtId: string; day: string; time: string }[]>([]);
+  const [bookings, setBookings] = useState<{ courtId: string; day: string; time: string }[]>([
+    // Mock demo data so tabs show content
+    { courtId: '1', day: 'Mon', time: '09:00' },
+    { courtId: '2', day: 'Wed', time: '14:00' },
+  ]);
   // Phase 2 filters
   const [filterType, setFilterType] = useState<'all' | 'Public' | 'Club'>('all');
   const [lightsOnly, setLightsOnly] = useState(false);
