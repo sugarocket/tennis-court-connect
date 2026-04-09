@@ -22,6 +22,19 @@ const TORONTO_LNG = -79.3832;
 // CKAN API for Toronto tennis courts
 const CKAN_URL = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/datastore_search?resource_id=1148d254-f942-4018-b730-342ed5727c2b&limit=100';
 
+// Generate mock weekly schedule: some slots busy per day
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const TIMES = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+function mockSchedule(): Record<string, string[]> {
+  const s: Record<string, string[]> = {};
+  for (const d of DAYS) {
+    // Random 2-5 busy slots per day
+    const busy = [...TIMES].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 4) + 2);
+    s[d] = busy;
+  }
+  return s;
+}
+
 type ViewMode = 'map' | 'list';
 type Court = {
   id: string;
@@ -36,6 +49,7 @@ type Court = {
   phone?: string;
   website?: string;
   availability: string[];
+  schedule: Record<string, string[]>; // day → busy times, e.g. { Mon: ["09:00", "14:00"] }
 };
 
 export default function CourtDiscoveryScreen() {
@@ -113,6 +127,7 @@ export default function CourtDiscoveryScreen() {
             phone: r.Phone,
             website: r.ClubWebsite,
             availability: ['Contact club for times'],
+            schedule: mockSchedule(),
           };
         });
 
@@ -156,6 +171,7 @@ export default function CourtDiscoveryScreen() {
           phone: r.Phone,
           website: r.ClubWebsite,
           availability: ['Contact club for times'],
+          schedule: mockSchedule(),
         };
       });
       setCourts(mapped);
