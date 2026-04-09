@@ -140,8 +140,8 @@ export default function CourtDiscoveryScreen() {
           style={[
             styles.details,
             {
-              opacity: anim,
-              maxHeight: anim.interpolate({
+              opacity: anim ?? new Animated.Value(0),
+              maxHeight: (anim ?? new Animated.Value(0)).interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, 200],
               }),
