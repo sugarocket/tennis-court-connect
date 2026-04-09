@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Toronto default center
 const TORONTO_LAT = 43.6532;
@@ -60,6 +61,14 @@ export default function CourtDiscoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [expandAnims] = useState<Record<string, Animated.Value>>({});
+  // Main tab: Discover | My
+  const [mainTab, setMainTab] = useState<'discover' | 'my'>('discover');
+  // My sub-tab: Favorites | Bookings
+  const [mySubTab, setMySubTab] = useState<'favorites' | 'bookings'>('favorites');
+  // Favorites: array of court IDs
+  const [favorites, setFavorites] = useState<string[]>([]);
+  // Bookings: {courtId, day, time}
+  const [bookings, setBookings] = useState<{ courtId: string; day: string; time: string }[]>([]);
   // Phase 2 filters
   const [filterType, setFilterType] = useState<'all' | 'Public' | 'Club'>('all');
   const [lightsOnly, setLightsOnly] = useState(false);
@@ -141,6 +150,32 @@ export default function CourtDiscoveryScreen() {
     }
     init();
   }, []);
+
+  // Load favorites and bookings from AsyncStorage
+  useEffect(() => {
+    (async () => {
+      try {
+        const fav = await AsyncStorage.getItem('favorites');
+        if (fav) setFavorites(JSON.parse(fav));
+        const bk = await AsyncStorage.getItem('bookings');
+        if (bk) setBookings(JSON.parse(bk));
+      } catch {}
+    })();
+  }, []);
+
+  const toggleFavorite = async (courtId: string) => {
+    const next = favorites.includes(courtId)
+      ? favorites.filter(id => id !== courtId)
+      : [...favorites, courtId];
+    setFavorites(next);
+    await AsyncStorage.setItem('favorites', JSON.stringify(next));
+  };
+
+  const addBooking = async (courtId: string, day: string, time: string) => {
+    const next = [...bookings, { courtId, day, time }];
+    setBookings(next);
+    await AsyncStorage.setItem('bookings', JSON.stringify(next));
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -300,9 +335,29 @@ export default function CourtDiscoveryScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Court Discovery</Text>
+        <View style={styles.mainTabRow}>
+          <TouchableOpacity style={[styles.mainTab, mainTab === 'discover' && styles.mainTabActive]} onPress={() => setMainTab('discover')}>
+            <Text style={[styles.mainTabText, mainTab === 'discover' && styles.mainTabTextActive]}>Discover</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.mainTab, mainTab === 'my' && styles.mainTabActive]} onPress={() => setMainTab('my')}>
+            <Text style={[styles.mainTabText, mainTab === 'my' && styles.mainTabTextActive]}>My</Text>
+          </TouchableOpacity>
+        </View>
+        {mainTab === 'my' && (
+          <View style={styles.mySubTabRow}>
+            <TouchableOpacity style={[styles.mySubTab, mySubTab === 'favorites' && styles.mySubTabActive]} onPress={() => setMySubTab('favorites')}>
+              <Text style={[styles.mySubTabText, mySubTab === 'favorites' && styles.mySubTabTextActive]}>Favorites</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.mySubTab, mySubTab === 'bookings' && styles.mySubTabActive]} onPress={() => setMySubTab('bookings')}>
+              <Text style={[styles.mySubTabText, mySubTab === 'bookings' && styles.mySubTabTextActive]}>Bookings</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
+      {/* Discover content */}
+      {mainTab === 'discover' && (
+        <>
       {/* Toggle */}
       <View style={styles.toggleRow}>
         <TouchableOpacity
@@ -412,6 +467,41 @@ export default function CourtDiscoveryScreen() {
             ))}
           </MapView>
         )
+      )}
+      </>)}
+      {/* My tab content */}
+      {mainTab === 'my' && (
+        <View style={{ flex: 1, padding: 16 }}>
+          {mySubTab === 'favorites' ? (
+            favorites.length === 0 ? (
+              <View style={styles.center}>
+                <Text style={styles.infoText}>No favorites yet. Tap ❤️ on a court.</Text>
+              </View>
+            ) : (
+              <ScrollView>
+                {courts.filter(c => favorites.includes(c.id)).map(renderCard)}
+              </ScrollView>
+            )
+          ) : (
+            bookings.length === 0 ? (
+              <View style={styles.center}>
+                <Text style={styles.infoText}>No bookings yet.</Text>
+              </View>
+            ) : (
+              <ScrollView>
+                {bookings.map((b, i) => {
+                  const court = courts.find(c => c.id === b.courtId);
+                  return (
+                    <View key={i} style={styles.card}>
+                      <Text style={styles.courtName}>{court?.name || 'Unknown'}</Text>
+                      <Text style={styles.detailValue}>{b.day} • {b.time}</Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )
+          )}
+        </View>
       )}
     </SafeAreaView>
   );
@@ -632,5 +722,52 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  mainTabRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E5E5EA',
+    borderRadius: 10,
+    padding: 2,
+    marginBottom: 8,
+  },
+  mainTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  mainTabActive: {
+    backgroundColor: '#FFF',
+  },
+  mainTabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  mainTabTextActive: {
+    color: '#007AFF',
+  },
+  mySubTabRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  mySubTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginHorizontal: 4,
+    borderRadius: 16,
+    backgroundColor: '#E5E5EA',
+  },
+  mySubTabActive: {
+    backgroundColor: '#007AFF',
+  },
+  mySubTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  mySubTabTextActive: {
+    color: '#FFF',
   },
 });
