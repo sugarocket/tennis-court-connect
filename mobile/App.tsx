@@ -40,6 +40,11 @@ export default function CourtDiscoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [expandAnims] = useState<Record<string, Animated.Value>>({});
+  // Phase 2 filters
+  const [filterType, setFilterType] = useState<'all' | 'Public' | 'Club'>('all');
+  const [lightsOnly, setLightsOnly] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [sortMode, setSortMode] = useState<'name' | 'distance'>('name');
 
   const toggleExpand = (id: string) => {
     const isExpanding = expandedId !== id;
