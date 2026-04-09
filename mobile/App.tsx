@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  TextInput,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -117,6 +118,25 @@ export default function CourtDiscoveryScreen() {
     init();
   }, []);
 
+  // Apply Phase 2 filters and sort
+  const filteredCourts = courts
+    .filter((c) => {
+      if (filterType !== 'all' && c.type !== filterType) return false;
+      if (lightsOnly && c.lights !== 'Y') return false;
+      const q = searchText.toLowerCase();
+      if (q && !(c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q))) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortMode === 'name') return a.name.localeCompare(b.name);
+      if (sortMode === 'distance' && userLocation) {
+        const da = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+        const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+        return da - db;
+      }
+      return 0;
+    });
+
   const renderCard = (court: Court) => {
     const isExpanded = expandedId === court.id;
     const anim = expandAnims[court.id];
@@ -204,6 +224,46 @@ export default function CourtDiscoveryScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Phase 2 Filters */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
+          onPress={() => setFilterType('all')}
+        >
+          <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterChip, filterType === 'Public' && styles.filterChipActive]}
+          onPress={() => setFilterType('Public')}
+        >
+          <Text style={[styles.filterChipText, filterType === 'Public' && styles.filterChipTextActive]}>Public</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterChip, filterType === 'Club' && styles.filterChipActive]}
+          onPress={() => setFilterType('Club')}
+        >
+          <Text style={[styles.filterChipText, filterType === 'Club' && styles.filterChipTextActive]}>Club</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterChip, lightsOnly && styles.filterChipActive]}
+          onPress={() => setLightsOnly(!lightsOnly)}
+        >
+          <Text style={[styles.filterChipText, lightsOnly && styles.filterChipTextActive]}>💡 Lit</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search name or address..."
+          value={searchText}
+          onChangeText={setSearchText}
+          clearButtonMode="while-editing"
+        />
+        <TouchableOpacity style={styles.sortBtn} onPress={() => setSortMode(sortMode === 'name' ? 'distance' : 'name')}>
+          <Text style={styles.sortBtnText}>{sortMode === 'name' ? '↕ Name' : '↕ Dist'}</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Loading / Error */}
       {loading && (
         <View style={styles.center}>
@@ -220,7 +280,7 @@ export default function CourtDiscoveryScreen() {
       {!loading && !error && (
         viewMode === 'list' ? (
           <ScrollView contentContainerStyle={styles.listContainer}>
-            {courts.map(renderCard)}
+            {filteredCourts.map(renderCard)}
           </ScrollView>
         ) : (
           <MapView
@@ -232,7 +292,7 @@ export default function CourtDiscoveryScreen() {
               longitudeDelta: 0.08,
             }}
           >
-            {courts.map((court) => (
+            {filteredCourts.map((court) => (
               <Marker
                 key={court.id}
                 coordinate={{ latitude: court.lat, longitude: court.lng }}
@@ -395,5 +455,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FF3B30',
     textAlign: 'center',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    backgroundColor: '#E5E5EA',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  filterChipActive: {
+    backgroundColor: '#007AFF',
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  filterChipTextActive: {
+    color: '#FFF',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginRight: 8,
+  },
+  sortBtn: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  sortBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
