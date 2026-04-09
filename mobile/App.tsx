@@ -15,6 +15,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 // Toronto default center
 const TORONTO_LAT = 43.6532;
@@ -261,7 +262,7 @@ export default function CourtDiscoveryScreen() {
             </View>
           )}
           <TouchableOpacity onPress={() => toggleFavorite(court.id)} style={{ marginLeft: 8 }}>
-            <Text style={{ fontSize: 20 }}>{favorites.includes(court.id) ? '❤️' : '♡'}</Text>
+            <Ionicons name={favorites.includes(court.id) ? 'heart' : 'heart-outline'} size={22} color={favorites.includes(court.id) ? '#FF3B30' : '#8E8E93'} />
           </TouchableOpacity>
         </View>
 
@@ -286,19 +287,19 @@ export default function CourtDiscoveryScreen() {
             <Text style={styles.detailValue}>🎾 {court.courts} court{court.courts > 1 ? 's' : ''}</Text>
           )}
           {court.lights && (
-            <Text style={styles.detailValue}>{court.lights === 'Y' ? '🟢 Lit' : '⚪ Unlit'}</Text>
+            <Text style={styles.detailValue}>{court.lights === 'Y' ? 'Lit' : 'Unlit'}</Text>
           )}
           {court.winterPlay === 'Y' && (
-            <Text style={styles.detailValue}>❄️ Winter play available</Text>
+            <Text style={styles.detailValue}>Winter play available</Text>
           )}
           {court.phone && (
             <TouchableOpacity onPress={() => Linking.openURL(`tel:${court.phone}`)}>
-              <Text style={[styles.detailValue, styles.linkText]}>☎️ {court.phone}</Text>
+              <Text style={[styles.detailValue, styles.linkText]}>{court.phone}</Text>
             </TouchableOpacity>
           )}
           {court.website && (
             <TouchableOpacity onPress={() => Linking.openURL(court.website!)}>
-              <Text style={[styles.detailValue, styles.linkText]}>🔗 Club website</Text>
+              <Text style={[styles.detailValue, styles.linkText]}>Club website</Text>
             </TouchableOpacity>
           )}
 
@@ -315,7 +316,7 @@ export default function CourtDiscoveryScreen() {
             <Text style={styles.mapLinkButtonText}>Open in Maps</Text>
           </TouchableOpacity>
 
-          <Text style={styles.detailLabel}>Availability (🟢 free / 🔴 busy)</Text>
+          <Text style={styles.detailLabel}>Availability</Text>
           <View style={styles.availabilityGrid}>
             {DAYS.map((day) => (
               <View key={day} style={styles.availRow}>
@@ -330,7 +331,7 @@ export default function CourtDiscoveryScreen() {
                         onPress={() => !busy && addBooking(court.id, day, t)}
                         activeOpacity={0.6}
                       >
-                        <Text style={styles.slotText}>{busy ? '🔴' : '🟢'}</Text>
+                        <Ionicons name={busy ? 'close-circle' : 'checkmark-circle'} size={16} color={busy ? '#FF3B30' : '#34C759'} />
                       </TouchableOpacity>
                     );
                   })}
@@ -421,7 +422,7 @@ export default function CourtDiscoveryScreen() {
           style={[styles.filterChip, lightsOnly && styles.filterChipActive]}
           onPress={() => setLightsOnly(!lightsOnly)}
         >
-          <Text style={[styles.filterChipText, lightsOnly && styles.filterChipTextActive]}>💡 Lit</Text>
+          <Text style={[styles.filterChipText, lightsOnly && styles.filterChipTextActive]}>Lit</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.searchRow}>
@@ -491,7 +492,7 @@ export default function CourtDiscoveryScreen() {
         <View style={{ flex: 1, padding: 16 }}>
           {bookings.length === 0 ? (
             <View style={styles.center}>
-              <Text style={styles.infoText}>No bookings yet. Tap 🟢 in a court to book.</Text>
+              <Text style={styles.infoText}>No bookings yet. Tap available slot in a court to book.</Text>
             </View>
           ) : (
             <ScrollView>
@@ -514,7 +515,7 @@ export default function CourtDiscoveryScreen() {
         <View style={{ flex: 1, padding: 16 }}>
           {favorites.length === 0 ? (
             <View style={styles.center}>
-              <Text style={styles.infoText}>No favorites yet. Tap ❤️ on a court.</Text>
+              <Text style={styles.infoText}>No favorites yet. Tap the heart on a court.</Text>
             </View>
           ) : (
             <ScrollView>
@@ -535,10 +536,10 @@ export default function CourtDiscoveryScreen() {
             <Text style={styles.courtName}>🔐 Login / Sign Up</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.card} onPress={() => alert('Profile settings coming soon')}>
-            <Text style={styles.courtName}>⚙️ Settings</Text>
+            <Text style={styles.courtName}>Settings</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.card} onPress={() => alert('Registered clubs coming soon')}>
-            <Text style={styles.courtName}>🏟️ Registered Clubs</Text>
+            <Text style={styles.courtName}>Registered Clubs</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -568,30 +569,30 @@ export default function CourtDiscoveryScreen() {
                   {c.lights && (
                     <View style={[styles.statusBadge, { backgroundColor: c.lights === 'Y' ? '#34C75922' : '#8E8E9322', marginRight: 8, marginBottom: 8 }]}>
                       <Text style={[styles.statusText, { color: c.lights === 'Y' ? '#34C759' : '#8E8E93' }]}>
-                        {c.lights === 'Y' ? '🟢 Lit' : '⚪ Unlit'}
+                        {c.lights === 'Y' ? 'Lit' : 'Unlit'}
                       </Text>
                     </View>
                   )}
                   {c.courts && (
                     <View style={[styles.statusBadge, { backgroundColor: '#FF950022', marginRight: 8, marginBottom: 8 }]}>
-                      <Text style={[styles.statusText, { color: '#FF9500' }]}>🎾 {c.courts} courts</Text>
+                      <Text style={[styles.statusText, { color: '#FF9500' }]}>{c.courts} courts</Text>
                     </View>
                   )}
                   {c.winterPlay === 'Y' && (
                     <View style={[styles.statusBadge, { backgroundColor: '#5AC8FA22', marginRight: 8, marginBottom: 8 }]}>
-                      <Text style={[styles.statusText, { color: '#5AC8FA' }]}>❄️ Winter</Text>
+                      <Text style={[styles.statusText, { color: '#5AC8FA' }]}>Winter</Text>
                     </View>
                   )}
                 </View>
 
                 {c.phone && (
                   <TouchableOpacity onPress={() => Linking.openURL(`tel:${c.phone}`)} style={{ marginBottom: 4 }}>
-                    <Text style={{ fontSize: 15, color: '#007AFF' }}>☎️ {c.phone}</Text>
+                    <Text style={{ fontSize: 15, color: '#007AFF' }}>{c.phone}</Text>
                   </TouchableOpacity>
                 )}
                 {c.website && (
                   <TouchableOpacity onPress={() => Linking.openURL(c.website!)} style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 15, color: '#007AFF' }}>🔗 Club website</Text>
+                    <Text style={{ fontSize: 15, color: '#007AFF' }}>Club website</Text>
                   </TouchableOpacity>
                 )}
 
@@ -610,7 +611,7 @@ export default function CourtDiscoveryScreen() {
                               onPress={() => !busy && addBooking(c.id, day, t)}
                               activeOpacity={0.6}
                             >
-                              <Text style={styles.slotText}>{busy ? '🔴' : '🟢'}</Text>
+                              <Ionicons name={busy ? 'close-circle' : 'checkmark-circle'} size={16} color={busy ? '#FF3B30' : '#34C759'} />
                               <Text style={{ fontSize: 9, color: busy ? '#FF3B30' : '#34C759' }}>{t}</Text>
                             </TouchableOpacity>
                           );
@@ -621,7 +622,7 @@ export default function CourtDiscoveryScreen() {
                 </View>
 
                 <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 12, textAlign: 'center' }}>
-                  Tap 🟢 to book • 🔴 = occupied
+                  Tap to book • red = occupied
                 </Text>
               </ScrollView>
             </View>
@@ -632,16 +633,20 @@ export default function CourtDiscoveryScreen() {
       {/* Bottom Tab Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('discover')}>
-          <Text style={[styles.bottomTabText, tab === 'discover' && styles.bottomTabTextActive]}>🏠 Discover</Text>
+          <Ionicons name="home-outline" size={22} color={tab === 'discover' ? '#007AFF' : '#8E8E93'} />
+          <Text style={[styles.bottomTabLabel, tab === 'discover' && styles.bottomTabLabelActive]}>Discover</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('bookings')}>
-          <Text style={[styles.bottomTabText, tab === 'bookings' && styles.bottomTabTextActive]}>📅 Bookings</Text>
+          <Ionicons name="calendar-outline" size={22} color={tab === 'bookings' ? '#007AFF' : '#8E8E93'} />
+          <Text style={[styles.bottomTabLabel, tab === 'bookings' && styles.bottomTabLabelActive]}>Bookings</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('favorites')}>
-          <Text style={[styles.bottomTabText, tab === 'favorites' && styles.bottomTabTextActive]}>❤️ Favorites</Text>
+          <Ionicons name="heart-outline" size={22} color={tab === 'favorites' ? '#FF3B30' : '#8E8E93'} />
+          <Text style={[styles.bottomTabLabel, tab === 'favorites' && styles.bottomTabLabelActive]}>Favorites</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('account')}>
-          <Text style={[styles.bottomTabText, tab === 'account' && styles.bottomTabTextActive]}>👤 Account</Text>
+          <Ionicons name="person-outline" size={22} color={tab === 'account' ? '#007AFF' : '#8E8E93'} />
+          <Text style={[styles.bottomTabLabel, tab === 'account' && styles.bottomTabLabelActive]}>Account</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -931,6 +936,15 @@ const styles = StyleSheet.create({
   bottomTabTextActive: {
     color: '#007AFF',
     fontWeight: '700',
+  },
+  bottomTabLabel: {
+    fontSize: 10,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  bottomTabLabelActive: {
+    color: '#007AFF',
+    fontWeight: '600',
   },
   availabilityGrid: {
     marginTop: 8,
