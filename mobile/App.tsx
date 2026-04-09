@@ -75,6 +75,7 @@ export default function CourtDiscoveryScreen() {
   const [searchText, setSearchText] = useState('');
   const [sortMode, setSortMode] = useState<'name' | 'distance'>('name');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
 
   const toggleExpand = (id: string) => {
     const isExpanding = expandedId !== id;
@@ -241,7 +242,7 @@ export default function CourtDiscoveryScreen() {
       <TouchableOpacity
         key={court.id}
         activeOpacity={0.8}
-        onPress={() => toggleExpand(court.id)}
+        onPress={() => setSelectedCourt(court)}
         style={styles.card}
       >
         <View style={styles.cardHeader}>
@@ -360,6 +361,8 @@ export default function CourtDiscoveryScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 
+      {!selectedCourt && (
+      <>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.mainTabRow}>
@@ -530,6 +533,91 @@ export default function CourtDiscoveryScreen() {
           )}
         </View>
       )}
+      {/* Court Detail Page */}
+      {selectedCourt ? (
+        (() => {
+          const c: Court = selectedCourt;
+          return (
+            <View style={{ flex: 1, backgroundColor: '#F2F2F7' }}>
+              <View style={styles.header}>
+                <TouchableOpacity onPress={() => setSelectedCourt(null)} style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 16, color: '#007AFF' }}>← Back</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>{c.name}</Text>
+                <Text style={{ fontSize: 14, color: '#8E8E93', marginTop: 4 }}>{c.address}</Text>
+              </View>
+
+              <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 32 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 }}>
+                  {c.type && (
+                    <View style={[styles.statusBadge, { backgroundColor: '#007AFF22', marginRight: 8, marginBottom: 8 }]}>
+                      <Text style={[styles.statusText, { color: '#007AFF' }]}>{c.type}</Text>
+                    </View>
+                  )}
+                  {c.lights && (
+                    <View style={[styles.statusBadge, { backgroundColor: c.lights === 'Y' ? '#34C75922' : '#8E8E9322', marginRight: 8, marginBottom: 8 }]}>
+                      <Text style={[styles.statusText, { color: c.lights === 'Y' ? '#34C759' : '#8E8E93' }]}>
+                        {c.lights === 'Y' ? '🟢 Lit' : '⚪ Unlit'}
+                      </Text>
+                    </View>
+                  )}
+                  {c.courts && (
+                    <View style={[styles.statusBadge, { backgroundColor: '#FF950022', marginRight: 8, marginBottom: 8 }]}>
+                      <Text style={[styles.statusText, { color: '#FF9500' }]}>🎾 {c.courts} courts</Text>
+                    </View>
+                  )}
+                  {c.winterPlay === 'Y' && (
+                    <View style={[styles.statusBadge, { backgroundColor: '#5AC8FA22', marginRight: 8, marginBottom: 8 }]}>
+                      <Text style={[styles.statusText, { color: '#5AC8FA' }]}>❄️ Winter</Text>
+                    </View>
+                  )}
+                </View>
+
+                {c.phone && (
+                  <TouchableOpacity onPress={() => Linking.openURL(`tel:${c.phone}`)} style={{ marginBottom: 4 }}>
+                    <Text style={{ fontSize: 15, color: '#007AFF' }}>☎️ {c.phone}</Text>
+                  </TouchableOpacity>
+                )}
+                {c.website && (
+                  <TouchableOpacity onPress={() => Linking.openURL(c.website!)} style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 15, color: '#007AFF' }}>🔗 Club website</Text>
+                  </TouchableOpacity>
+                )}
+
+                <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Availability</Text>
+                <View style={styles.availabilityGrid}>
+                  {DAYS.map((day) => (
+                    <View key={day} style={styles.availRow}>
+                      <Text style={styles.availDay}>{day}</Text>
+                      <View style={styles.availSlots}>
+                        {TIMES.map((t) => {
+                          const busy = c.schedule[day]?.includes(t);
+                          return (
+                            <TouchableOpacity
+                              key={t}
+                              style={[styles.slotChip, busy ? styles.slotBusy : styles.slotFree]}
+                              onPress={() => !busy && addBooking(c.id, day, t)}
+                              activeOpacity={0.6}
+                            >
+                              <Text style={styles.slotText}>{busy ? '🔴' : '🟢'}</Text>
+                              <Text style={{ fontSize: 9, color: busy ? '#FF3B30' : '#34C759' }}>{t}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={{ fontSize: 13, color: '#8E8E93', marginTop: 12, textAlign: 'center' }}>
+                  Tap 🟢 to book • 🔴 = occupied
+                </Text>
+              </ScrollView>
+            </View>
+          );
+        })()
+      ) : null}
+      </>)}
     </SafeAreaView>
   );
 }
