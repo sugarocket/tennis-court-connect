@@ -62,9 +62,8 @@ export default function CourtDiscoveryScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [expandAnims] = useState<Record<string, Animated.Value>>({});
   // Main tab: Discover | My
-  const [mainTab, setMainTab] = useState<'discover' | 'my'>('discover');
-  // My sub-tab: Favorites | Bookings
-  const [mySubTab, setMySubTab] = useState<'favorites' | 'bookings'>('favorites');
+  // Bottom tab: discover | bookings | favorites | account
+  const [tab, setTab] = useState<'discover' | 'bookings' | 'favorites' | 'account'>('discover');
   // Favorites: array of court IDs
   const [favorites, setFavorites] = useState<string[]>([]);
   // Bookings: {courtId, day, time}
@@ -365,28 +364,16 @@ export default function CourtDiscoveryScreen() {
       <>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.mainTabRow}>
-          <TouchableOpacity style={[styles.mainTab, mainTab === 'discover' && styles.mainTabActive]} onPress={() => setMainTab('discover')}>
-            <Text style={[styles.mainTabText, mainTab === 'discover' && styles.mainTabTextActive]}>Discover</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.mainTab, mainTab === 'my' && styles.mainTabActive]} onPress={() => setMainTab('my')}>
-            <Text style={[styles.mainTabText, mainTab === 'my' && styles.mainTabTextActive]}>My</Text>
-          </TouchableOpacity>
-        </View>
-        {mainTab === 'my' && (
-          <View style={styles.mySubTabRow}>
-            <TouchableOpacity style={[styles.mySubTab, mySubTab === 'favorites' && styles.mySubTabActive]} onPress={() => setMySubTab('favorites')}>
-              <Text style={[styles.mySubTabText, mySubTab === 'favorites' && styles.mySubTabTextActive]}>Favorites</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.mySubTab, mySubTab === 'bookings' && styles.mySubTabActive]} onPress={() => setMySubTab('bookings')}>
-              <Text style={[styles.mySubTabText, mySubTab === 'bookings' && styles.mySubTabTextActive]}>Bookings</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <Text style={styles.title}>
+          {tab === 'discover' && 'Court Discovery'}
+          {tab === 'bookings' && 'My Bookings'}
+          {tab === 'favorites' && 'Favorites'}
+          {tab === 'account' && 'Account'}
+        </Text>
       </View>
 
       {/* Discover content */}
-      {mainTab === 'discover' && (
+      {tab === 'discover' && (
         <>
       {/* Toggle */}
       <View style={styles.toggleRow}>
@@ -499,38 +486,60 @@ export default function CourtDiscoveryScreen() {
         )
       )}
       </>)}
-      {/* My tab content */}
-      {mainTab === 'my' && (
+      {/* Bookings tab */}
+      {tab === 'bookings' && (
         <View style={{ flex: 1, padding: 16 }}>
-          {mySubTab === 'favorites' ? (
-            favorites.length === 0 ? (
-              <View style={styles.center}>
-                <Text style={styles.infoText}>No favorites yet. Tap ❤️ on a court.</Text>
-              </View>
-            ) : (
-              <ScrollView>
-                {courts.filter(c => favorites.includes(c.id)).map(renderCard)}
-              </ScrollView>
-            )
+          {bookings.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.infoText}>No bookings yet. Tap 🟢 in a court to book.</Text>
+            </View>
           ) : (
-            bookings.length === 0 ? (
-              <View style={styles.center}>
-                <Text style={styles.infoText}>No bookings yet.</Text>
-              </View>
-            ) : (
-              <ScrollView>
-                {bookings.map((b, i) => {
-                  const court = courts.find(c => c.id === b.courtId);
-                  return (
-                    <View key={i} style={styles.card}>
-                      <Text style={styles.courtName}>{court?.name || 'Unknown'}</Text>
-                      <Text style={styles.detailValue}>{b.day} • {b.time}</Text>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            )
+            <ScrollView>
+              {bookings.map((b, i) => {
+                const court = courts.find(c => c.id === b.courtId);
+                return (
+                  <View key={i} style={styles.card}>
+                    <Text style={styles.courtName}>{court?.name || 'Unknown'}</Text>
+                    <Text style={styles.detailValue}>{b.day} • {b.time}</Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
           )}
+        </View>
+      )}
+
+      {/* Favorites tab */}
+      {tab === 'favorites' && (
+        <View style={{ flex: 1, padding: 16 }}>
+          {favorites.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.infoText}>No favorites yet. Tap ❤️ on a court.</Text>
+            </View>
+          ) : (
+            <ScrollView>
+              {courts.filter(c => favorites.includes(c.id)).map(renderCard)}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {/* Account tab */}
+      {tab === 'account' && (
+        <View style={{ flex: 1, padding: 16 }}>
+          <View style={styles.card}>
+            <Text style={styles.courtName}>Profile</Text>
+            <Text style={styles.detailValue}>User: Guest</Text>
+          </View>
+          <TouchableOpacity style={styles.card} onPress={() => alert('Login coming soon')}>
+            <Text style={styles.courtName}>🔐 Login / Sign Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.card} onPress={() => alert('Profile settings coming soon')}>
+            <Text style={styles.courtName}>⚙️ Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.card} onPress={() => alert('Registered clubs coming soon')}>
+            <Text style={styles.courtName}>🏟️ Registered Clubs</Text>
+          </TouchableOpacity>
         </View>
       )}
       {/* Court Detail Page */}
@@ -618,6 +627,21 @@ export default function CourtDiscoveryScreen() {
         })()
       ) : null}
       </>)}
+      {/* Bottom Tab Bar */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('discover')}>
+          <Text style={[styles.bottomTabText, tab === 'discover' && styles.bottomTabTextActive]}>🏠 Discover</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('bookings')}>
+          <Text style={[styles.bottomTabText, tab === 'bookings' && styles.bottomTabTextActive]}>📅 Bookings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('favorites')}>
+          <Text style={[styles.bottomTabText, tab === 'favorites' && styles.bottomTabTextActive]}>❤️ Favorites</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomTab} onPress={() => setTab('account')}>
+          <Text style={[styles.bottomTabText, tab === 'account' && styles.bottomTabTextActive]}>👤 Account</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -884,6 +908,27 @@ const styles = StyleSheet.create({
   },
   mySubTabTextActive: {
     color: '#FFF',
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    paddingBottom: 8,
+    paddingTop: 6,
+  },
+  bottomTab: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bottomTabText: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  bottomTabTextActive: {
+    color: '#007AFF',
+    fontWeight: '700',
   },
   availabilityGrid: {
     marginTop: 8,
