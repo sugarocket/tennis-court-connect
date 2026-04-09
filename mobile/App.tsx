@@ -315,6 +315,30 @@ export default function CourtDiscoveryScreen() {
             <Text style={styles.mapLinkButtonText}>Open in Maps</Text>
           </TouchableOpacity>
 
+          <Text style={styles.detailLabel}>Availability (🟢 free / 🔴 busy)</Text>
+          <View style={styles.availabilityGrid}>
+            {DAYS.map((day) => (
+              <View key={day} style={styles.availRow}>
+                <Text style={styles.availDay}>{day}</Text>
+                <View style={styles.availSlots}>
+                  {TIMES.slice(0, 6).map((t) => {
+                    const busy = court.schedule[day]?.includes(t);
+                    return (
+                      <TouchableOpacity
+                        key={t}
+                        style={[styles.slotChip, busy ? styles.slotBusy : styles.slotFree]}
+                        onPress={() => !busy && addBooking(court.id, day, t)}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={styles.slotText}>{busy ? '🔴' : '🟢'}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </View>
+
           <Text style={styles.detailLabel}>Available Times</Text>
           <View style={styles.timeRow}>
             {court.availability.map((t, i) => (
@@ -772,5 +796,40 @@ const styles = StyleSheet.create({
   },
   mySubTabTextActive: {
     color: '#FFF',
+  },
+  availabilityGrid: {
+    marginTop: 8,
+  },
+  availRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  availDay: {
+    width: 36,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000',
+  },
+  availSlots: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  slotChip: {
+    width: 32,
+    height: 28,
+    borderRadius: 6,
+    marginRight: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotFree: {
+    backgroundColor: '#E0F7E9',
+  },
+  slotBusy: {
+    backgroundColor: '#FFE5E5',
+  },
+  slotText: {
+    fontSize: 14,
   },
 });
