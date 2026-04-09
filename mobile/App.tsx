@@ -260,6 +260,9 @@ export default function CourtDiscoveryScreen() {
               </Text>
             </View>
           )}
+          <TouchableOpacity onPress={() => toggleFavorite(court.id)} style={{ marginLeft: 8 }}>
+            <Text style={{ fontSize: 20 }}>{favorites.includes(court.id) ? '❤️' : '♡'}</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.addressPreview}>{court.address}</Text>
