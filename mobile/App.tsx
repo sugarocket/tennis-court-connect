@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -10,55 +10,44 @@ import {
   Animated,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
-// Mock court data (minimal, per request)
-const MOCK_COURTS = [
-  {
-    id: '1',
-    name: 'Downtown Tennis Club',
-    address: '123 Main Street, Downtown',
-    lat: 37.78825,
-    lng: -122.4324,
-    status: 'OPEN',
-    availability: ['9:00 AM', '10:30 AM', '2:00 PM'],
-  },
-  {
-    id: '2',
-    name: 'Riverside Public Courts',
-    address: '456 River Road, Riverside',
-    lat: 37.7749,
-    lng: -122.4194,
-    status: 'BUSY',
-    availability: ['4:00 PM', '5:30 PM'],
-  },
-  {
-    id: '3',
-    name: 'Oakwood Tennis Center',
-    address: '789 Oak Avenue, Oakwood',
-    lat: 37.795,
-    lng: -122.41,
-    status: 'OPEN',
-    availability: ['8:00 AM', '11:00 AM', '3:00 PM', '6:00 PM'],
-  },
-];
+// Toronto default center
+const TORONTO_LAT = 43.6532;
+const TORONTO_LNG = -79.3832;
+
+// CKAN API for Toronto tennis courts
+const CKAN_URL = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/datastore_search?resource_id=1148d254-f942-4018-b730-342ed5727c2b&limit=100';
 
 type ViewMode = 'map' | 'list';
-type Court = (typeof MOCK_COURTS)[0];
+type Court = {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  type?: string;
+  lights?: string;
+  courts?: number;
+  availability: string[];
+};
 
 export default function CourtDiscoveryScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandAnims] = useState(() =>
-    MOCK_COURTS.reduce((acc, court) => {
-      acc[court.id] = new Animated.Value(0);
-      return acc;
-    }, {} as Record<string, Animated.Value>)
-  );
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [expandAnims] = useState<Record<string, Animated.Value>>({});
 
   const toggleExpand = (id: string) => {
     const isExpanding = expandedId !== id;
     setExpandedId(isExpanding ? id : null);
 
+    if (!expandAnims[id]) {
+      expandAnims[id] = new Animated.Value(isExpanding ? 0 : 1);
+    }
     Animated.timing(expandAnims[id], {
       toValue: isExpanding ? 1 : 0,
       duration: 200,
@@ -66,11 +55,62 @@ export default function CourtDiscoveryScreen() {
     }).start();
   };
 
-  const statusColor = (status: string) => {
-    if (status === 'OPEN') return '#34C759';
-    if (status === 'BUSY') return '#FF9500';
-    return '#8E8E93';
-  };
+  // Fetch real Toronto courts from CKAN API, with GPS location
+  useEffect(() => {
+    async function init() {
+      try {
+        // 1. Request location permission
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({});
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        } else {
+          setUserLocation({ lat: TORONTO_LAT, lng: TORONTO_LNG });
+        }
+
+        // 2. Fetch courts from CKAN API
+        const res = await fetch(CKAN_URL);
+        const json = await res.json();
+        if (!json.result || !json.result.records) {
+          throw new Error('Invalid API response');
+        }
+
+        const records = json.result.records;
+        const mapped: Court[] = records.map((r: any, i: number) => {
+          // geometry can be { coordinates: [lng, lat] } or x/y fields
+          let lat = TORONTO_LAT;
+          let lng = TORONTO_LNG;
+          if (r.geometry && r.geometry.coordinates) {
+            lng = r.geometry.coordinates[0];
+            lat = r.geometry.coordinates[1];
+          } else if (r.x && r.y) {
+            lng = r.x;
+            lat = r.y;
+          }
+
+          return {
+            id: r._id ? String(r._id) : String(i),
+            name: r.Name || 'Unknown Court',
+            address: r.LocationAddress || r.ClubInfo || 'Address unavailable',
+            lat,
+            lng,
+            type: r.Type,
+            lights: r.Lights,
+            courts: r.Courts,
+            availability: ['Contact club for times'], // placeholder — real API has no schedule
+          };
+        });
+
+        setCourts(mapped);
+        setLoading(false);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load courts');
+        setLoading(false);
+        // Fallback: empty list (user sees error state)
+      }
+    }
+    init();
+  }, []);
 
   const renderCard = (court: Court) => {
     const isExpanded = expandedId === court.id;
@@ -85,11 +125,13 @@ export default function CourtDiscoveryScreen() {
       >
         <View style={styles.cardHeader}>
           <Text style={styles.courtName}>{court.name}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor(court.status) + '22' }]}>
-            <Text style={[styles.statusText, { color: statusColor(court.status) }]}>
-              {court.status}
-            </Text>
-          </View>
+          {court.type && (
+            <View style={[styles.statusBadge, { backgroundColor: '#007AFF22' }]}>
+              <Text style={[styles.statusText, { color: '#007AFF' }]}>
+                {court.type}
+              </Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.addressPreview}>{court.address}</Text>
@@ -157,30 +199,44 @@ export default function CourtDiscoveryScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Loading / Error */}
+      {loading && (
+        <View style={styles.center}>
+          <Text style={styles.infoText}>Loading Toronto courts…</Text>
+        </View>
+      )}
+      {error && (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
       {/* Content */}
-      {viewMode === 'list' ? (
-        <ScrollView contentContainerStyle={styles.listContainer}>
-          {MOCK_COURTS.map(renderCard)}
-        </ScrollView>
-      ) : (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-        >
-          {MOCK_COURTS.map((court) => (
-            <Marker
-              key={court.id}
-              coordinate={{ latitude: court.lat, longitude: court.lng }}
-              title={court.name}
-              description={court.status}
-            />
-          ))}
-        </MapView>
+      {!loading && !error && (
+        viewMode === 'list' ? (
+          <ScrollView contentContainerStyle={styles.listContainer}>
+            {courts.map(renderCard)}
+          </ScrollView>
+        ) : (
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: userLocation ? userLocation.lat : TORONTO_LAT,
+              longitude: userLocation ? userLocation.lng : TORONTO_LNG,
+              latitudeDelta: 0.08,
+              longitudeDelta: 0.08,
+            }}
+          >
+            {courts.map((court) => (
+              <Marker
+                key={court.id}
+                coordinate={{ latitude: court.lat, longitude: court.lng }}
+                title={court.name}
+                description={court.type ? `${court.type} • ${court.courts || ''} courts` : undefined}
+              />
+            ))}
+          </MapView>
+        )
       )}
     </SafeAreaView>
   );
@@ -319,5 +375,20 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#8E8E93',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    textAlign: 'center',
   },
 });
